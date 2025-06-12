@@ -1,7 +1,7 @@
 // timer.js
 
 let timerInterval;
-let timeLeft = 25 * 60; // 初期値：25分（秒単位）
+let timeLeft = 10;//25 * 60; // 初期値：25分（秒単位）
 let isRunning = false;
 
 const timerDisplay = document.getElementById('timer-display');
