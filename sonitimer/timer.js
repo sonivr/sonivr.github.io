@@ -86,7 +86,7 @@ updateDisplay();
 
 // --- 新しい追加：初期スタックしずくのプレースホルダー ---
 // 最終的には、この部分はしずくのスタック管理機能に置き換わります
-let pomodoroSequence = [25, 5]; // 25分作業, 5分休憩の繰り返しを想定
+let pomodoroSequence = [1,2];//for test [25, 5]; // 25分作業, 5分休憩の繰り返しを想定
 let currentSequenceIndex = 0;
 
 /**
