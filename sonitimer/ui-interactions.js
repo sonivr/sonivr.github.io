@@ -26,65 +26,67 @@ smallLeaves.forEach(leaf => {
         if (minutesToSet > 0) {
             // timer.jsで定義されたsetTimer関数を呼び出す
             // (timer.jsが先に読み込まれていることを前提とします)
-            setTimer(minutesToSet); 
-
-            // しずくが落ちる簡易アニメーション（CSSと合わせて後で豪華にする）
+           setTimer(minutesToSet); 
+            // しずくが落ちる簡易アニメーション
             const largeLeaf = document.getElementById('large-leaf');
             const droplet = document.createElement('div');
             droplet.classList.add('temp-droplet');
             largeLeaf.appendChild(droplet);
-
-            // アニメーション後に要素を削除
             droplet.addEventListener('animationend', () => {
                 droplet.remove();
             });
+            playShortSound(); // ★ ここを追加：葉っぱクリック時に短い効果音を鳴らす
         }
     });
 });
 
-// ハチドリ (既存コードはそのまま)
+
+// ハチドリ
 const hummingbird = document.getElementById('hummingbird');
 let hummingbirdTapCount = 0;
 hummingbird.addEventListener('click', () => {
     hummingbirdTapCount++;
     console.log(`ハチドリが ${hummingbirdTapCount} 回タップされました。`);
+    playShortSound(); // ★ ここを追加：ハチドリクリック時に短い効果音を鳴らす
+    // 音量設定ロジックは後で実装（タップ回数に応じる）
 });
+
 let hummingbirdPressTimer;
 hummingbird.addEventListener('mousedown', () => {
     hummingbirdPressTimer = setTimeout(() => {
         console.log("ハチドリが長押しされました（さえずり、BGM再生）");
+        playBackgroundMusic(); // ★ ここを追加：ハチドリ長押し時にBGMを再生
     }, 1000);
 });
 hummingbird.addEventListener('mouseup', () => {
     clearTimeout(hummingbirdPressTimer);
+    stopBackgroundMusic(); // ★ ここを追加：ハチドリ長押し解除時にBGMを停止
 });
 hummingbird.addEventListener('mouseleave', () => {
     clearTimeout(hummingbirdPressTimer);
+    stopBackgroundMusic(); // ★ ここを追加：マウスが要素から離れたらBGMを停止
 });
 
-// 大きめの葉っぱの左右領域 (既存コードはそのまま)
-const largeLeafLeft = document.getElementById('large-leaf-left-area');
-const largeLeafRight = document.getElementById('large-leaf-right-area');
-
+// 大きめの葉っぱの左右、筒のくびれのクリックイベント
 largeLeafLeft.addEventListener('click', () => {
     console.log("大きめの葉っぱの左側が押されました（地面に零れ落ちる）");
-    // ここでタイマーをリセットする処理などを呼び出す
-    resetTimer(); // 例としてresetTimerを呼んでみる
+    resetTimer(); 
+    setNextSequenceTimer(); // ★ ここを変更：リセット後に次のシーケンスタイマーを設定
+    playShortSound(); // ★ ここを追加
 });
 
 largeLeafRight.addEventListener('click', () => {
     console.log("大きめの葉っぱの右側が押されました（しずくが筒に落ちる）");
-    // ここでタイマー開始処理などを呼び出す
-    startTimer(); // 例としてstartTimerを呼んでみる
+    startTimer(); 
+    playShortSound(); // ★ ここを追加
 });
 
-// 筒のくびれ部分 (既存コードはそのまま)
-const tubeNeckArea = document.getElementById('tube-neck-area');
 tubeNeckArea.addEventListener('click', () => {
     console.log("筒のくびれ部分が押されました（しずくが落ちる）");
-    // ここでタイマー開始処理などを呼び出す
-    startTimer(); // 例としてstartTimerを呼んでみる
+    startTimer(); 
+    playShortSound(); // ★ ここを追加
 });
+
 
 // 地面の要素 (既存コードはそのまま)
 const feather = document.getElementById('feather');
