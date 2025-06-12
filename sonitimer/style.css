@@ -1,37 +1,202 @@
 body {
     font-family: sans-serif;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column; /* 要素を縦に並べる */
+    align-items: center; /* 横方向の中央揃え */
+    justify-content: flex-start; /* 上から配置していく */
     min-height: 100vh;
     margin: 0;
-    background-color: #f0f8f0; /* 薄い緑色の背景 */
+    background-color: #e0ffe0; /* 薄い緑色の背景 */
     color: #333;
+    overflow: hidden; /* 要素がはみ出さないように */
+    position: relative; /* 子要素の絶対位置指定の基準 */
 }
 
 h1 {
-    color: #556b2f; /* オリーブグリーン */
+    display: none; /* タイトルは一旦非表示。後でデザインに組み込むか削除 */
 }
 
 #timer-display {
     font-size: 4em;
     margin: 20px 0;
     color: #2f4f4f; /* ダークスレートグレー */
+    z-index: 10; /* 他の要素より手前に表示 */
+    position: relative; /* 配置調整のため */
 }
 
-button {
-    padding: 10px 20px;
-    margin: 5px;
-    font-size: 1em;
+/* --- 上部の葉っぱとハチドリ --- */
+.top-leaves {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100px; /* 仮の高さ */
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding-left: 20px;
+    z-index: 20;
+}
+
+.small-leaf {
+    background-color: #7CFC00; /* 緑色 */
+    border-radius: 0 50% 0 50%; /* 葉っぱっぽい形 */
+    position: relative;
+    margin-right: -20px; /* 少し重ねる */
+    transform: rotate(45deg);
     cursor: pointer;
-    border: none;
-    border-radius: 5px;
-    background-color: #8fbc8f; /* ミディアムシーグリーン */
-    color: white;
-    transition: background-color 0.3s ease;
+    transition: transform 0.1s ease, background-color 0.1s ease;
+}
+.small-leaf:active {
+    transform: rotate(45deg) scale(0.95); /* クリックで少し縮む */
 }
 
-button:hover {
-    background-color: #6b8e23; /* オリーブドラブ */
+#leaf1 { width: 80px; height: 60px; z-index: 4; }
+#leaf2 { width: 70px; height: 50px; z-index: 3; top: 10px; }
+#leaf3 { width: 60px; height: 40px; z-index: 2; top: 20px; }
+#leaf4 { width: 50px; height: 30px; z-index: 1; top: 30px; }
+
+#hummingbird {
+    position: absolute;
+    right: 20px;
+    top: 30px;
+    width: 60px;
+    height: 40px;
+    background-color: #87CEEB; /* スカイブルー */
+    border-radius: 50%; /* 仮のハチドリ */
+    cursor: pointer;
+    z-index: 21;
+    transition: transform 0.1s ease;
+}
+#hummingbird:active {
+    transform: scale(0.9);
+}
+
+/* --- 大きめの葉っぱ --- */
+#large-leaf {
+    position: absolute;
+    top: 30px; /* 画面の上1/3程度をカバー */
+    left: 0;
+    width: 80%; /* 左側から広がる */
+    height: 250px; /* 仮の高さ */
+    background-color: rgba(144, 238, 144, 0.5); /* 薄緑の透明 */
+    border-radius: 0 50% 0 50%; /* 斜めに大きめの葉っぱっぽい形 */
+    transform: rotate(30deg); /* 30度上向きに */
+    transform-origin: left bottom; /* 左下の茎を基準に回転 */
+    z-index: 5;
+    overflow: hidden; /* 中の要素を閉じ込める */
+}
+
+#large-leaf-left-area,
+#large-leaf-right-area {
+    position: absolute;
+    width: 50%;
+    height: 100%;
+    cursor: pointer;
+    /* デバッグ用。実際は透過 */
+    /* border: 1px dashed red; */ 
+}
+#large-leaf-left-area {
+    left: 0;
+}
+#large-leaf-right-area {
+    right: 0;
+}
+#large-leaf-left-area:active,
+#large-leaf-right-area:active {
+    background-color: rgba(255, 255, 255, 0.2); /* クリック時のフィードバック */
+}
+
+
+/* --- 筒（砂時計の代わり） --- */
+#glass-tube {
+    position: absolute;
+    right: 50px;
+    top: 25%; /* 画面下2/3にかけて */
+    width: 80px;
+    height: 300px;
+    background-color: rgba(173, 216, 230, 0.4); /* 薄い青色の透明 */
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 40px / 150px; /* 縦長の楕円でくびれっぽく */
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#tube-neck-area {
+    width: 60px; /* くびれのヒットエリア */
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.1); /* 仮の色 */
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+#tube-neck-area:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* --- 半透明薄茶色の茎 --- */
+#transparent-stem {
+    position: absolute;
+    left: 30px;
+    bottom: 0;
+    width: 30px;
+    height: 400px; /* 下から2/3 */
+    background-color: rgba(139, 69, 19, 0.3); /* セピア色の透明 */
+    border-radius: 15px;
+    transform-origin: bottom center;
+    transform: rotate(-10deg); /* 少し斜めに */
+    z-index: 3;
+}
+
+/* --- 地面 --- */
+#ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 150px; /* 仮の高さ */
+    background-color: #8B4513; /* 土の色 */
+    border-top: 5px solid #654321; /* 土の境界線 */
+    z-index: 10; /* 手前に表示 */
+}
+
+/* 地面上の要素 */
+#feather, #pebble, #sprout {
+    position: absolute;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+#feather:active, #pebble:active, #sprout:active {
+    transform: scale(0.9);
+}
+
+#feather {
+    width: 50px;
+    height: 20px;
+    background-color: #D3D3D3; /* 薄い灰色 */
+    border-radius: 50%; /* 仮の羽 */
+    left: 10%;
+    bottom: 30px;
+}
+#pebble {
+    width: 30px;
+    height: 20px;
+    background-color: #808080; /* 灰色 */
+    border-radius: 50%; /* 仮の小石 */
+    left: 30%;
+    bottom: 25px;
+}
+#sprout {
+    width: 20px;
+    height: 30px;
+    background-color: #32CD32; /* ライムグリーン */
+    border-radius: 50% 50% 0 0; /* 仮の芽 */
+    left: 50%;
+    bottom: 20px;
 }
