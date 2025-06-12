@@ -74,17 +74,18 @@ h1 {
 
 /* --- 大きめの葉っぱ --- */
 #large-leaf {
+    /* ... 既存のスタイル ... */
     position: absolute;
-    top: 30px; /* 画面の上1/3程度をカバー */
+    top: 30px;
     left: 0;
-    width: 80%; /* 左側から広がる */
-    height: 250px; /* 仮の高さ */
-    background-color: rgba(144, 238, 144, 0.5); /* 薄緑の透明 */
-    border-radius: 0 50% 0 50%; /* 斜めに大きめの葉っぱっぽい形 */
-    transform: rotate(30deg); /* 30度上向きに */
-    transform-origin: left bottom; /* 左下の茎を基準に回転 */
+    width: 80%;
+    height: 250px;
+    background-color: rgba(144, 238, 144, 0.5);
+    border-radius: 0 50% 0 50%;
+    transform: rotate(30deg);
+    transform-origin: left bottom;
     z-index: 5;
-    overflow: hidden; /* 中の要素を閉じ込める */
+    overflow: hidden; /* しずくを葉っぱの範囲に収める */
 }
 
 #large-leaf-left-area,
@@ -199,4 +200,37 @@ h1 {
     border-radius: 50% 50% 0 0; /* 仮の芽 */
     left: 50%;
     bottom: 20px;
+}
+
+
+/* --- 新しい追加：簡易しずくアニメーション --- */
+.temp-droplet {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: rgba(0, 191, 255, 0.8); /* 青いしずく */
+    border-radius: 50%;
+    top: 0; /* 最初は葉っぱの上 */
+    left: 50%; /* 葉っぱの真ん中あたりから */
+    transform: translateX(-50%);
+    animation: drop 1s forwards; /* dropアニメーションを1秒で実行 */
+    z-index: 100; /* 最前面に表示 */
+}
+
+@keyframes drop {
+    0% {
+        top: 0;
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+    70% {
+        top: 80%; /* 葉っぱの途中まで落ちる */
+        opacity: 1;
+        transform: translateX(-50%) scale(0.8);
+    }
+    100% {
+        top: 100%; /* 葉っぱの下まで落ちる */
+        opacity: 0; /* 消える */
+        transform: translateX(-50%) scale(0.5);
+    }
 }

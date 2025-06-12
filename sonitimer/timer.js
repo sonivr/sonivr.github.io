@@ -1,13 +1,29 @@
 // timer.js
 
-let timerInterval; // setIntervalのIDを保持し、タイマーを停止するために使います
-let timeLeft = 10;//25 * 60; // 初期値：25分（秒単位）
-let isRunning = false; // タイマーが現在実行中かどうか
+let timerInterval;
+let timeLeft = 25 * 60; // 初期値：25分（秒単位）
+let isRunning = false;
 
 const timerDisplay = document.getElementById('timer-display');
-const startButton = document.getElementById('start-button');
-const pauseButton = document.getElementById('pause-button');
-const resetButton = document.getElementById('reset-button');
+const startButton = document.getElementById('start-button'); // 既存のボタン
+const pauseButton = document.getElementById('pause-button'); // 既存のボタン
+const resetButton = document.getElementById('reset-button'); // 既存のボタン
+
+// --- 新しい関数を追加 ---
+/**
+ * タイマーの時間を設定する関数
+ * @param {number} minutes - 設定する分数
+ */
+function setTimer(minutes) {
+    if (isRunning) {
+        // タイマー実行中に設定変更しようとした場合は、一度リセットして再設定
+        resetTimer();
+    }
+    timeLeft = minutes * 60; // 分数を秒に変換して設定
+    updateDisplay(); // 表示を即座に更新
+    console.log(`${minutes}分のタイマーが設定されました。`);
+}
+// --- ここまで追加 ---
 
 /**
  * タイマー表示を更新する関数
@@ -16,7 +32,6 @@ const resetButton = document.getElementById('reset-button');
 function updateDisplay() {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
-    // 0埋めして「05:03」のように表示されるようにします
     timerDisplay.textContent = 
         `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
@@ -25,43 +40,41 @@ function updateDisplay() {
  * タイマーを開始する関数
  */
 function startTimer() {
-    if (isRunning) return; // すでに実行中の場合は何もしない
+    if (isRunning) return;
 
     isRunning = true;
     timerInterval = setInterval(() => {
-        timeLeft--; // 1秒ごとに残り時間を減らす
-        updateDisplay(); // 表示を更新
+        timeLeft--;
+        updateDisplay();
 
         if (timeLeft <= 0) {
-            clearInterval(timerInterval); // タイマーを停止
+            clearInterval(timerInterval);
             isRunning = false;
-            alert("時間が来ました！"); // 時間が0になったらアラートを表示
-            // 必要であれば、ここで自動的に次のタイマー（休憩など）を開始するロジックを追加できます
-            resetTimer(); // 今回は一度リセットに戻します
+            alert("時間が来ました！");
+            resetTimer(); 
         }
-    }, 1000); // 1000ミリ秒（1秒）ごとに実行
+    }, 1000);
 }
 
 /**
  * タイマーを一時停止する関数
  */
 function pauseTimer() {
-    clearInterval(timerInterval); // setIntervalをクリアしてタイマーを停止
+    clearInterval(timerInterval);
     isRunning = false;
 }
 
 /**
  * タイマーを初期状態に戻す関数
- * （ここでは25分に戻しますが、将来的には設定値を使います）
  */
 function resetTimer() {
-    clearInterval(timerInterval); // 実行中のタイマーがあれば停止
+    clearInterval(timerInterval);
     isRunning = false;
-    timeLeft = 25 * 60; // 25分にリセット
-    updateDisplay(); // 表示を更新
+    timeLeft = 25 * 60; // 25分にリセット (将来的にはデフォルト設定から読み込む)
+    updateDisplay();
 }
 
-// イベントリスナーを設定
+// イベントリスナーを設定 (既存のボタンは現在非表示)
 startButton.addEventListener('click', startTimer);
 pauseButton.addEventListener('click', pauseTimer);
 resetButton.addEventListener('click', resetTimer);
