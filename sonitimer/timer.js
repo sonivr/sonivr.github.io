@@ -116,6 +116,12 @@ function setNextSequenceTimer() {
     const nextMinutes = pomodoroSequence[currentSequenceIndex];
     setTimer(nextMinutes); 
 
+
+    // ★ ここを追加・修正 ★
+    currentSequenceIndex = (currentSequenceIndex + 1) % pomodoroSequence.length; // 次のシーケンスへ
+    console.log(`次のタイマーは ${nextMinutes} 分に設定されました。現在のシーケンスインデックス: ${currentSequenceIndex}`);
+    // ★ ここまで追加・修正 ★
+    
     // ここはまだ自動開始ではないので、alertの後、ユーザーが操作するまで待機状態
     // 最終的には、アラートなしで自動的に次のタイマーが開始されるようにする
     // alertは一時的に残します。
