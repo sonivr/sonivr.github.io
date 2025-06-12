@@ -111,19 +111,23 @@ h1 {
 
 /* --- 筒（砂時計の代わり） --- */
 #glass-tube {
+    /* ... 既存のスタイル ... */
     position: absolute;
     right: 50px;
-    top: 25%; /* 画面下2/3にかけて */
+    top: 25%;
     width: 80px;
     height: 300px;
-    background-color: rgba(173, 216, 230, 0.4); /* 薄い青色の透明 */
+    background-color: rgba(173, 216, 230, 0.4);
     border: 2px solid rgba(0, 0, 0, 0.2);
-    border-radius: 40px / 150px; /* 縦長の楕円でくびれっぽく */
+    border-radius: 40px / 150px;
     z-index: 6;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    /* しずくの相対位置指定の基準にするため追加 */
+    position: relative; 
+    overflow: hidden; /* 筒からはみ出すしずくを非表示にする */
 }
 
 #tube-neck-area {
@@ -137,6 +141,50 @@ h1 {
     cursor: pointer;
     transition: background-color 0.1s ease;
 }
+
+/* --- 新しい追加：筒に落ちるしずくのアニメーション --- */
+.splashing-droplet {
+    position: absolute;
+    width: 30px; /* しずくのサイズ */
+    height: 30px;
+    border-radius: 50%;
+    /* 初期位置は筒の上部中央 */
+    top: -30px; 
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0.9;
+    z-index: 7; /* 筒より少し手前 */
+    animation: splash-down 0.8s ease-in forwards; /* 落ちるアニメーション */
+}
+
+
+@keyframes splash-down {
+    0% {
+        top: -30px;
+        transform: translateX(-50%) scale(0.7);
+        opacity: 0.5;
+    }
+    50% {
+        top: 50%; /* 筒の真ん中くらいまで落ちる */
+        transform: translateX(-50%) scale(1.1); /* 少し大きくなる */
+        opacity: 0.9;
+    }
+    100% {
+        top: calc(100% - 30px); /* 筒の底まで落ちる */
+        transform: translateX(-50%) scale(1); /* 元のサイズに戻る */
+        opacity: 1;
+    }
+}
+
+/* しずくの色を定義するクラス (JavaScriptから動的に追加) */
+.droplet-color-work {
+    background-color: rgba(255, 160, 0, 0.8); /* 作業時間の色 (オレンジ系) */
+}
+
+.droplet-color-break {
+    background-color: rgba(0, 191, 255, 0.8); /* 休憩時間の色 (水色系) */
+}
+
 #tube-neck-area:active {
     background-color: rgba(255, 255, 255, 0.3);
 }
@@ -213,7 +261,8 @@ h1 {
     top: 0; /* 最初は葉っぱの上 */
     left: 50%; /* 葉っぱの真ん中あたりから */
     transform: translateX(-50%);
-    animation: drop 1s forwards; /* dropアニメーションを1秒で実行 */
+    background-color: rgba(0, 191, 255, 0.8); /* ここを明確に定義 */
+    animation: drop 0.8s forwards; /* アニメーション時間を少し短縮 */
     z-index: 100; /* 最前面に表示 */
 }
 
@@ -221,16 +270,16 @@ h1 {
     0% {
         top: 0;
         opacity: 1;
-        transform: translateX(-50%) scale(1);
+        transform: translateX(-50%) scale(0.8); /* 開始時少し小さめ */
     }
-    70% {
-        top: 80%; /* 葉っぱの途中まで落ちる */
+    50% {
+        top: 80%; 
         opacity: 1;
-        transform: translateX(-50%) scale(0.8);
+        transform: translateX(-50%) scale(1.1); /* 途中少し大きめ */
     }
     100% {
-        top: 100%; /* 葉っぱの下まで落ちる */
-        opacity: 0; /* 消える */
-        transform: translateX(-50%) scale(0.5);
+        top: 100%;
+        opacity: 0; 
+        transform: translateX(-50%) scale(0.7); /* 終了時少し小さめ */
     }
 }

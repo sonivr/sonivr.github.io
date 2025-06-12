@@ -83,10 +83,13 @@ largeLeafLeft.addEventListener('click', () => {
     playShortSound();
 });
 
+
 largeLeafRight.addEventListener('click', () => {
     console.log("大きめの葉っぱの右側が押されました（しずくが筒に落ちる）");
-    startTimer(); 
-    playShortSound();
+    // startTimer(); // ★ ここをコメントアウト/削除 ★
+    // しずくを筒に落とす行為自体が、タイマーをスタートさせるトリガー
+    // これにより、タイマー開始時に自動でしずくが落ちるようになる
+    playShortSound(); // 短い音は鳴らす
 });
 
 tubeNeckArea.addEventListener('click', () => {
