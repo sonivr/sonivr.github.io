@@ -72,7 +72,7 @@ function pauseTimer() {
 function resetTimer() {
     clearInterval(timerInterval);
     isRunning = false;
-    timeLeft = 25 * 60; // 25分にリセット (将来的にはデフォルト設定から読み込む)
+    timeLeft = 10;//for test 25 * 60; // 25分にリセット (将来的にはデフォルト設定から読み込む)
     updateDisplay();
 }
 
