@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fish!ステータスシミュレーター</title>
+
+<style>
+:root {
+  --fg: #111;
+  --sub: #777;
+  --border: #e5e5e5;
+  --accent: #2563eb;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #fff;
+  color: var(--fg);
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+  line-height: 1.6;
+}
+
+/* タイトル */
+h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+/* セクション */
+.section {
+  margin-bottom: 32px;
+}
+
+/* セレクタ */
+.selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+label {
+  font-size: 0.75rem;
+  color: var(--sub);
+  display: block;
+  margin-bottom: 4px;
+}
+
+select {
+  width: 100%;
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+/* テーブル */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th, td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+
+th {
+  font-weight: 500;
+  color: var(--sub);
+}
+
+.total-row {
+  font-weight: 600;
+  background: #fafafa;
+}
+
+/* アクション */
+.actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 16px;
+  font-size: 0.85rem;
+}
+
+.actions button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+}
+
+.actions button:hover {
+  text-decoration: underline;
+}
+
+/* メモ */
+.memo-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.memo-item button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent);
+  margin-left: 8px;
+}
+
+#loading {
+  font-size: 0.85rem;
+  color: var(--sub);
+  margin-bottom: 16px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Fish!ステータスシミュレーター</h1>
+
+<div id="loading">Loading...</div>
+
+<div class="section">
+  <div class="selector-grid" id="selectors"></div>
+</div>
+
+<div class="section">
+  <table id="main-table">
+    <thead id="table-head"></thead>
+    <tbody id="table-body"></tbody>
+    <tfoot id="table-foot"></tfoot>
+  </table>
+
+  <div class="actions">
+    <button onclick="saveMemo()">保存</button>
+    <button onclick="copyURL()">共有URLコピー</button>
+  </div>
+</div>
+
+<div class="section">
+  <div id="memo-list"></div>
+</div>
+
+<script>
+    // --- 設定 ---
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzhdyoZPUHUVi19TNp8Mg5wTMyhoi6xCMsmiXRU3aZQo2Auz3alo6Vu-f-_28p0uZSo/exec";
+    const EXCLUDE_COLS = ["カテゴリ", "名前"]; 
+
+    let rawData = [];
+    let categories = {}; 
+    let headers = [];
+    let currentSelection = {};
+    let memos = [];
+
+    // --- データ取得 ---
+    async function init() {
+      try {
+        const res = await fetch(GAS_URL);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        headers = data[0];
+        rawData = data.slice(1);
+
+        // カテゴリでグルーピング
+        const catIdx = headers.indexOf("カテゴリ");
+        rawData.forEach((row, index) => {
+          const catName = row[catIdx] || "未分類";
+          if (!categories[catName]) categories[catName] = [];
+          categories[catName].push({ id: index, data: row });
+        });
+
+        renderSelectors();
+        loadFromURL();
+        updateDisplay();
+        document.getElementById("loading").style.display = "none";
+      } catch (err) {
+        document.getElementById("loading").innerText = "エラー: " + err.message;
+      }
+    }
+
+    // --- UI生成 ---
+    function renderSelectors() {
+      const container = document.getElementById("selectors");
+      for (const catName in categories) {
+        const div = document.createElement("div");
+        div.className = "select-box";
+        div.innerHTML = `<label>${catName}</label>`;
+        
+        const sel = document.createElement("select");
+        sel.innerHTML = `<option value="">-- 未選択 --</option>`;
+        categories[catName].forEach(item => {
+          const nameIdx = headers.indexOf("名前");
+          sel.innerHTML += `<option value="${item.id}">${item.data[nameIdx]}</option>`;
+        });
+        
+        sel.onchange = (e) => {
+          currentSelection[catName] = e.target.value;
+          updateDisplay();
+          updateURL();
+        };
+        sel.id = `sel-${catName}`;
+        div.appendChild(sel);
+        container.appendChild(div);
+      }
+    }
+
+    // --- 計算・表示更新 ---
+    function updateDisplay() {
+      const tbody = document.getElementById("table-body");
+      const tfoot = document.getElementById("table-foot");
+      const thead = document.getElementById("table-head");
+      
+      tbody.innerHTML = "";
+      
+      // ヘッダー描画
+      thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+
+      let totals = new Array(headers.length).fill(0);
+      let selectedAny = false;
+
+      for (const catName in currentSelection) {
+        const rowIdx = currentSelection[catName];
+        if (rowIdx === "" || rowIdx === undefined) continue;
+        
+        selectedAny = true;
+        const rowData = rawData[rowIdx];
+        const tr = document.createElement("tr");
+        
+        rowData.forEach((val, i) => {
+          const td = document.createElement("td");
+          td.innerText = val;
+          tr.appendChild(td);
+
+          // 数値計算
+          if (!EXCLUDE_COLS.includes(headers[i])) {
+            const num = parseFloat(String(val).replace(/,/g, '')) || 0;
+            totals[i] += num;
+          }
+        });
+        tbody.appendChild(tr);
+      }
+
+      // 合計行
+      if (selectedAny) {
+        const tr = document.createElement("tr");
+        tr.className = "total-row";
+        headers.forEach((h, i) => {
+          const td = document.createElement("td");
+          if (h === "カテゴリ") td.innerText = "合計";
+          else if (EXCLUDE_COLS.includes(h)) td.innerText = "-";
+          else td.innerText = Math.round(totals[i] * 100) / 100;
+          tr.appendChild(td);
+        });
+        tfoot.innerHTML = "";
+        tfoot.appendChild(tr);
+      } else {
+        tfoot.innerHTML = "";
+      }
+    }
+
+    // --- URL・メモ機能 ---
+    function updateURL() {
+      const params = new URLSearchParams();
+      const state = Object.entries(currentSelection).filter(([k,v]) => v !== "").map(([k,v]) => `${k}:${v}`).join("|");
+      if (state) params.set("s", state);
+      if (memos.length > 0) params.set("m", btoa(encodeURIComponent(JSON.stringify(memos))));
+      window.history.replaceState({}, "", "?" + params.toString());
+    }
+
+    function loadFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      const s = params.get("s");
+      if (s) {
+        s.split("|").forEach(pair => {
+          const [cat, idx] = pair.split(":");
+          currentSelection[cat] = idx;
+          const el = document.getElementById(`sel-${cat}`);
+          if (el) el.value = idx;
+        });
+      }
+      const m = params.get("m");
+      if (m) {
+        try { memos = JSON.parse(decodeURIComponent(atob(m))); renderMemos(); } catch(e) {}
+      }
+    }
+
+    function saveMemo() {
+      const nameIdx = headers.indexOf("名前");
+      const selectedNames = Object.values(currentSelection).filter(v => v!=="").map(idx => rawData[idx][nameIdx]);
+      if (selectedNames.length === 0) return;
+      
+      const label = prompt("メモのタイトルを入力してください", selectedNames.join(" + "));
+      if (!label) return;
+
+      memos.push({ label, state: { ...currentSelection } });
+      renderMemos();
+      updateURL();
+    }
+
+    function renderMemos() {
+      const list = document.getElementById("memo-list");
+      list.innerHTML = "";
+      memos.forEach((m, i) => {
+        const item = document.createElement("div");
+        item.className = "memo-item";
+        item.innerHTML = `<span>${m.label}</span>`;
+        
+        const btnGrp = document.createElement("div");
+        const btnLoad = document.createElement("button");
+        btnLoad.innerText = "復元";
+        btnLoad.className = "btn btn-copy";
+        btnLoad.style.marginRight = "5px";
+        btnLoad.onclick = () => {
+          currentSelection = { ...m.state };
+          for (const cat in categories) {
+            const el = document.getElementById(`sel-${cat}`);
+            if (el) el.value = currentSelection[cat] || "";
+          }
+          updateDisplay();
+          updateURL();
+        };
+
+        const btnDel = document.createElement("button");
+        btnDel.innerText = "削除";
+        btnDel.className = "btn btn-delete";
+        btnDel.onclick = () => { memos.splice(i, 1); renderMemos(); updateURL(); };
+
+        btnGrp.appendChild(btnLoad);
+        btnGrp.appendChild(btnDel);
+        item.appendChild(btnGrp);
+        list.appendChild(item);
+      });
+    }
+
+    function copyURL() {
+      navigator.clipboard.writeText(window.location.href);
+      alert("URLをコピーしました。");
+    }
+
+    init();
+  </script>
+<div class="footer">
+  <div class="links">
+    Game: <a href="https://vrchat.com/home/world/wrld_9b56a749-8a71-4843-ba1e-96ec9e422dd4/info" target="_blank">Fish!</a>
+     & X:<a href="https://x.com/TrickForgeDev" target="_blank">TrickForge Studios</a>  
+    　Data: <a href="https://wikiwiki.jp/fish_jp/" target="_blank">Wiki</a>  
+    　Page: <a href="https://nidusalcedo.booth.pm/" target="_blank">*そに*</a>
+  </div>
+</div>
+</body>
+</html>
