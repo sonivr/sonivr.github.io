@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio - nidusalcedo</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+    if (typeof marked === 'undefined') {
+      document.write('<script src="../js/marked.min.js"><\/script>');
+    }
+ 　 </script>
+    <style>
+        :root { --bg: #f4f4f4; --card: #fff; --text: #333; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; line-height: 1.6; }
+        header { background: #222; color: #fff; padding: 1rem; text-align: center; }
+        nav { display: flex; justify-content: center; gap: 10px; padding: 1rem; background: #eee; position: sticky; top: 0; z-index: 100; }
+        
+        #app { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+        
+        /* ギャラリーレイアウト */
+        .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .item-card { background: var(--card); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s; }
+        .item-card:hover { transform: translateY(-5px); }
+        .item-card img { width: 100%; height: 180px; object-fit: cover; }
+        .item-card-body { padding: 15px; }
+
+        /* 詳細表示 */
+        .detail-view { background: var(--card); padding: 30px; border-radius: 8px; }
+        .detail-content img { max-width: 100%; border-radius: 8px; }
+        .back-btn { display: inline-block; margin-bottom: 20px; cursor: pointer; color: #007bff; }
+        
+        .loading { text-align: center; padding: 50px; font-size: 1.2rem; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Portfolio</h1>
+</header>
+
+<nav id="category-nav">
+    <a href="?" data-cat="all">All</a>
+    <a href="?cat=cat_avatar" data-cat="cat_avatar">Avatar</a>
+    <a href="?cat=cat_accessory" data-cat="cat_accessory">Accessory</a>
+</nav>
+
+<main id="app">
+    <div id="status" class="loading">Fetching data...</div>
+    <div id="content"></div>
+</main>
+
+<script>
+/**
+ * 構成設定
+ */
+const CONFIG = {
+    GAS_URL: "https://script.google.com/macros/s/AKfycbyG14KBeK03qfO6hLOZWKViaap9O-v6K3LK69B8DgyYGcNMRhqjdSfFrRDVyotRKDn2/exec", // 公開したGASのURLに差し替えてください
+    DEFAULT_IMG: "https://via.placeholder.com/300x180?text=No+Image"
+};
+
+/**
+ * 状態管理
+ */
+let APP_STATE = {
+    allData: [],
+    currentCategory: null
+};
+
+/**
+ * 初期化
+ */
+async function init() {
+    // 1. データ取得
+    try {
+        const response = await fetch(CONFIG.GAS_URL, { redirect: "follow" });
+        APP_STATE.allData = await response.json();
+        document.getElementById('status').classList.add('hidden');
+        
+        // 2. ルーティング監視
+        window.addEventListener('popstate', handleRouting);
+        handleRouting();
+        
+        // 3. ナビゲーションのイベント委譲
+        setupNavigation();
+    } catch (error) {
+        document.getElementById('status').innerText = "Error loading data.";
+        console.error(error);
+    }
+}
+
+/**
+ * ルーティング処理
+ */
+function handleRouting() {
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get('cat');
+    const id = params.get('id'); // 個別詳細ページ用（必要なら）
+
+    if (id) {
+        renderDetail(id);
+    } else {
+        renderGallery(cat || 'all');
+    }
+}
+
+/**
+ * ギャラリー表示
+ */
+function renderGallery(category) {
+    const container = document.getElementById('content');
+    container.innerHTML = `<div class="item-grid"></div>`;
+    const grid = container.querySelector('.item-grid');
+
+    const filtered = category === 'all' 
+        ? APP_STATE.allData 
+        : APP_STATE.allData.filter(item => item.category === category);
+
+    filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+            <img src="${item.image_url || CONFIG.DEFAULT_IMG}" loading="lazy" alt="${item.title}">
+            <div class="item-card-body">
+                <h3>${item.title}</h3>
+                <p>${item.descriptions}</p>
+            </div>
+        `;
+        card.onclick = () => navigate(`?cat=${category}&id=${item['No.']}`);
+        grid.appendChild(card);
+    });
+}
+
+/**
+ * 詳細表示
+ */
+function renderDetail(no) {
+    const item = APP_STATE.allData.find(i => String(i['No.']) === String(no));
+    const container = document.getElementById('content');
+
+    if (!item) {
+        container.innerHTML = "Item not found.";
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="detail-view">
+            <span class="back-btn" onclick="history.back()">← Back</span>
+            <h2>${item.title}</h2>
+            <img src="${item.image_url || CONFIG.DEFAULT_IMG}" alt="${item.title}">
+            <div class="detail-content">
+                ${marked.parse(item.main_text || "")}
+            </div>
+            <div class="links">
+                ${item.link1 ? `<a href="${item.link1}" target="_blank">Link 1</a>` : ''}
+                ${item.link2 ? `<a href="${item.link2}" target="_blank">Link 2</a>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * ユーティリティ
+ */
+function navigate(url) {
+    window.history.pushState(null, null, url);
+    handleRouting();
+}
+
+function setupNavigation() {
+    document.getElementById('category-nav').addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') {
+            e.preventDefault();
+            navigate(e.target.getAttribute('href'));
+        }
+    });
+}
+
+// 実行
+init();
+</script>
+
+</body>
+</html>
