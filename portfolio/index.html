@@ -5,30 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portfolio - nidusalcedo</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <script>
     if (typeof marked === 'undefined') {
       document.write('<script src="../js/marked.min.js"><\/script>');
     }
  　 </script>
     <style>
-        :root { --bg: #f4f4f4; --card: #fff; --text: #333; }
+        :root { --bg: #f4f4f4; --card: #fff; --text: #333; --accent: #007bff; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; line-height: 1.6; }
-        header { background: #222; color: #fff; padding: 1rem; text-align: center; }
-        nav { display: flex; justify-content: center; gap: 10px; padding: 1rem; background: #eee; position: sticky; top: 0; z-index: 100; }
+        header { background: #222; color: #fff; padding: 1.5rem; text-align: center; }
+        
+        /* 動的ナビゲーション */
+        nav { display: flex; justify-content: center; gap: 15px; padding: 1rem; background: #eee; position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
+        nav a { text-decoration: none; color: #666; font-weight: bold; padding: 5px 10px; border-radius: 4px; transition: 0.2s; }
+        nav a:hover, nav a.active { color: #fff; background: var(--accent); }
         
         #app { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
         
-        /* ギャラリーレイアウト */
+        /* ギャラリー/タイル表示 */
         .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .item-card { background: var(--card); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s; }
+        .item-card { background: var(--card); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s; position: relative; }
         .item-card:hover { transform: translateY(-5px); }
-        .item-card img { width: 100%; height: 180px; object-fit: cover; }
+        .item-card img { width: 100%; height: 200px; object-fit: cover; }
         .item-card-body { padding: 15px; }
+
+        /* カテゴリータイル専用の装飾 */
+        .category-tile .item-card-body { background: var(--accent); color: white; text-align: center; }
+        .category-tile h3::before { content: "📁 "; }
 
         /* 詳細表示 */
         .detail-view { background: var(--card); padding: 30px; border-radius: 8px; }
         .detail-content img { max-width: 100%; border-radius: 8px; }
-        .back-btn { display: inline-block; margin-bottom: 20px; cursor: pointer; color: #007bff; }
+        .back-btn { display: inline-block; margin-bottom: 20px; cursor: pointer; color: var(--accent); font-weight: bold; }
         
         .loading { text-align: center; padding: 50px; font-size: 1.2rem; }
         .hidden { display: none; }
@@ -37,85 +46,122 @@
 <body>
 
 <header>
-    <h1>Portfolio</h1>
+    <h1 id="site-title" style="cursor:pointer" onclick="navigate('?')">Portfolio</h1>
 </header>
 
 <nav id="category-nav">
-    <a href="?" data-cat="all">All</a>
-    <a href="?cat=cat_avatar" data-cat="cat_avatar">Avatar</a>
-    <a href="?cat=cat_accessory" data-cat="cat_accessory">Accessory</a>
-</nav>
+    </nav>
 
 <main id="app">
-    <div id="status" class="loading">Fetching data...</div>
+    <div id="status" class="loading">Loading assets...</div>
     <div id="content"></div>
 </main>
 
 <script>
-/**
- * 構成設定
- */
 const CONFIG = {
-    GAS_URL: "https://script.google.com/macros/s/AKfycbyG14KBeK03qfO6hLOZWKViaap9O-v6K3LK69B8DgyYGcNMRhqjdSfFrRDVyotRKDn2/exec", // 公開したGASのURLに差し替えてください
-    DEFAULT_IMG: "https://via.placeholder.com/300x180?text=No+Image"
+    GAS_URL: "https://script.google.com/macros/s/AKfycbyG14KBeK03qfO6hLOZWKViaap9O-v6K3LK69B8DgyYGcNMRhqjdSfFrRDVyotRKDn2/exec",
+    DEFAULT_IMG: "https://via.placeholder.com/400x250?text=No+Image"
 };
 
-/**
- * 状態管理
- */
 let APP_STATE = {
     allData: [],
-    currentCategory: null
+    categories: [] // category: "category" の行を抽出して格納
 };
 
-/**
- * 初期化
- */
 async function init() {
-    // 1. データ取得
     try {
         const response = await fetch(CONFIG.GAS_URL, { redirect: "follow" });
-        APP_STATE.allData = await response.json();
+        const rawData = await response.json();
+        
+        // 1. カテゴリ定義行とコンテンツ行を分離
+        APP_STATE.categories = rawData
+            .filter(item => item.category === "category")
+            .sort((a, b) => a['No.'] - b['No.']);
+        
+        APP_STATE.allData = rawData.filter(item => item.category !== "category");
+
         document.getElementById('status').classList.add('hidden');
         
-        // 2. ルーティング監視
+        // 2. ナビゲーションの自動生成
+        renderNav();
+        
+        // 3. ルーティング開始
         window.addEventListener('popstate', handleRouting);
         handleRouting();
-        
-        // 3. ナビゲーションのイベント委譲
-        setupNavigation();
     } catch (error) {
-        document.getElementById('status').innerText = "Error loading data.";
+        document.getElementById('status').innerText = "データの読み込みに失敗しました。";
         console.error(error);
     }
 }
 
 /**
- * ルーティング処理
+ * カテゴリナビを自動生成
  */
+function renderNav() {
+    const nav = document.getElementById('category-nav');
+    nav.innerHTML = `<a href="?" data-cat="all">Home</a>`;
+    
+    APP_STATE.categories.forEach(cat => {
+        const a = document.createElement('a');
+        // title列に格納されている「ユニークなカテゴリ名」をリンクにする
+        a.href = `?cat=${cat.title}`; 
+        a.textContent = cat.title.replace('cat_', ''); // cat_avatar -> avatar 等の表示調整
+        a.onclick = (e) => { e.preventDefault(); navigate(a.getAttribute('href')); };
+        nav.appendChild(a);
+    });
+}
+
 function handleRouting() {
     const params = new URLSearchParams(window.location.search);
     const cat = params.get('cat');
-    const id = params.get('id'); // 個別詳細ページ用（必要なら）
+    const id = params.get('id');
+
+    // ナビのアクティブ表示更新
+    document.querySelectorAll('#category-nav a').forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href').includes(`cat=${cat}`) || (!cat && a.getAttribute('href') === '?'));
+    });
 
     if (id) {
         renderDetail(id);
+    } else if (!cat || cat === 'all') {
+        renderCategoryTop(); // トップページはタイル表示
     } else {
-        renderGallery(cat || 'all');
+        renderGallery(cat); // 特定カテゴリ表示
     }
 }
 
 /**
- * ギャラリー表示
+ * トップページ：カテゴリタイル一覧を表示
  */
-function renderGallery(category) {
+function renderCategoryTop() {
     const container = document.getElementById('content');
     container.innerHTML = `<div class="item-grid"></div>`;
     const grid = container.querySelector('.item-grid');
 
-    const filtered = category === 'all' 
-        ? APP_STATE.allData 
-        : APP_STATE.allData.filter(item => item.category === category);
+    APP_STATE.categories.forEach(cat => {
+        const card = document.createElement('div');
+        card.className = 'item-card category-tile';
+        card.innerHTML = `
+            <img src="${cat.image_url || CONFIG.DEFAULT_IMG}" loading="lazy">
+            <div class="item-card-body">
+                <h3>${cat.title}</h3>
+                <p>${cat.descriptions || ''}</p>
+            </div>
+        `;
+        card.onclick = () => navigate(`?cat=${cat.title}`);
+        grid.appendChild(card);
+    });
+}
+
+/**
+ * 特定カテゴリのアイテム一覧を表示
+ */
+function renderGallery(category) {
+    const container = document.getElementById('content');
+    container.innerHTML = `<h2>Category: ${category}</h2><div class="item-grid"></div>`;
+    const grid = container.querySelector('.item-grid');
+
+    const filtered = APP_STATE.allData.filter(item => item.category === category);
 
     filtered.forEach(item => {
         const card = document.createElement('div');
@@ -132,15 +178,12 @@ function renderGallery(category) {
     });
 }
 
-/**
- * 詳細表示
- */
 function renderDetail(no) {
     const item = APP_STATE.allData.find(i => String(i['No.']) === String(no));
     const container = document.getElementById('content');
 
     if (!item) {
-        container.innerHTML = "Item not found.";
+        container.innerHTML = "アイテムが見つかりませんでした。";
         return;
     }
 
@@ -153,31 +196,18 @@ function renderDetail(no) {
                 ${marked.parse(item.main_text || "")}
             </div>
             <div class="links">
-                ${item.link1 ? `<a href="${item.link1}" target="_blank">Link 1</a>` : ''}
-                ${item.link2 ? `<a href="${item.link2}" target="_blank">Link 2</a>` : ''}
+                ${item.link1 ? `<a href="${item.link1}" target="_blank" class="back-btn" style="margin-right:15px">Link 1</a>` : ''}
+                ${item.link2 ? `<a href="${item.link2}" target="_blank" class="back-btn">Link 2</a>` : ''}
             </div>
         </div>
     `;
 }
 
-/**
- * ユーティリティ
- */
 function navigate(url) {
     window.history.pushState(null, null, url);
     handleRouting();
 }
 
-function setupNavigation() {
-    document.getElementById('category-nav').addEventListener('click', (e) => {
-        if (e.target.tagName === 'A') {
-            e.preventDefault();
-            navigate(e.target.getAttribute('href'));
-        }
-    });
-}
-
-// 実行
 init();
 </script>
 
